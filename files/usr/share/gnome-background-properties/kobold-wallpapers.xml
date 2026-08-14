@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
+<wallpapers>
+  <wallpaper deleted="false">
+    <name>Kobold</name>
+    <filename>/usr/share/backgrounds/kobold/kobold-wallpaper.png</filename>
+    <filename-dark>/usr/share/backgrounds/kobold/kobold-wallpaper.png</filename-dark>
+    <options>zoom</options>
+    <pcolor>#07150f</pcolor>
+    <scolor>#07150f</scolor>
+    <shade_type>solid</shade_type>
+  </wallpaper>
+</wallpapers>

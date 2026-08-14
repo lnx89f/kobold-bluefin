@@ -1,0 +1,22 @@
+# Kobold owns only deliberate desktop defaults. These are defaults, not locks;
+# user/chezmoi state can override them normally.
+
+[org.gnome.shell]
+enabled-extensions=[]
+favorite-apps=['org.mozilla.firefox.desktop', 'org.gnome.Nautilus.desktop', 'io.github.kolunmi.Bazaar.desktop', 'org.gnome.Ptyxis.desktop']
+
+[org.gnome.desktop.background]
+picture-uri='file:///usr/share/backgrounds/kobold/kobold-wallpaper.png'
+picture-uri-dark='file:///usr/share/backgrounds/kobold/kobold-wallpaper.png'
+picture-options='zoom'
+primary-color='#07150f'
+secondary-color='#07150f'
+
+[org.gnome.desktop.screensaver]
+picture-uri='file:///usr/share/backgrounds/kobold/kobold-wallpaper.png'
+picture-options='zoom'
+primary-color='#07150f'
+secondary-color='#07150f'
+
+[org.gnome.system.location]
+enabled=false

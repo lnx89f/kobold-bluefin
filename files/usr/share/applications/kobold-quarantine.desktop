@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Quarantine Virtual Machines
+Comment=Run untrusted workloads with system libvirt and SELinux/sVirt confinement
+Exec=virt-manager --connect qemu:///system
+Icon=virt-manager
+Terminal=false
+Type=Application
+Categories=System;Emulator;
+Keywords=virtualization;vm;qemu;kvm;quarantine;security;
+StartupNotify=true

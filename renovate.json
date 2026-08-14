@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.base-image\\.lock$/"],
+      "matchStrings": [
+        "BASE_IMAGE=(?<depName>ghcr\\.io/ublue-os/bluefin):(?<currentValue>stable)@(?<currentDigest>sha256:[0-9a-f]{64})"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchDepNames": ["ghcr.io/ublue-os/bluefin"],
+      "pinDigests": true
+    }
+  ]
+}

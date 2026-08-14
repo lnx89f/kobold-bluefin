@@ -1,0 +1,5 @@
+{
+  "fastfetch-config": "/usr/share/kobold/fastfetch.jsonc",
+  "shuffle-logo": false,
+  "default-theme": "slate"
+}

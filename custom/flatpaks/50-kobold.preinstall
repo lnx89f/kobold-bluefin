@@ -1,0 +1,5 @@
+# Bazaar remains inherited from Bluefin's /usr/share/flatpak/preinstall.d.
+# Kobold adds only Firefox in v0.1.
+[Flatpak Preinstall org.mozilla.firefox]
+Branch=stable
+IsRuntime=false

@@ -1,0 +1,1 @@
+BASE_IMAGE=ghcr.io/ublue-os/bluefin:stable@sha256:856082ff05edf994977d2adf040a159b5490218deb8e124cc6bd6df2a0aae530
