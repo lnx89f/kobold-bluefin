@@ -89,15 +89,8 @@ rm -rf \
   /run/dnf \
   /run/gluster \
   /run/selinux-policy \
-  /var/cache/libdnf5 \
-  /var/cache/libvirt \
   /var/lib/dnf/repos \
-  /var/lib/rpm-state \
-  /var/log/glusterfs \
-  /var/log/libvirt \
-  /var/log/swtpm
+  /var/lib/rpm-state
 rm -f \
-  /var/cache/ldconfig/aux-cache \
   /var/lib/authselect/checksum \
-  /var/lib/dnf/system-repo.lock \
-  /var/log/dnf5.log
+  /var/lib/dnf/system-repo.lock

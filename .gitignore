@@ -1,9 +1,6 @@
-# Generated build output/local caches
-output/
-.cache/
-*.qcow2
-*.raw
-*.iso
-
-# `.base-image.lock` is intentionally NOT ignored. After `just prepare`, commit
-# it so the exact Bluefin digest used by the project remains reproducible.
+cosign.key
+_build_*
+output
+_build-*/**
+*_chunkah_*
+*_rpm-ostree_*
