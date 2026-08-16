@@ -6,13 +6,30 @@ ROOT="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 while IFS= read -r -d '' f; do
   bash -n "$f"
 done < <(find "${ROOT}/build_files" "${ROOT}/tests" -type f -name '*.sh' -print0)
-bash -n "${ROOT}/system_files/usr/bin/divination"
+divination="${ROOT}/system_files/usr/bin/divination"
+bash -n "${divination}"
 
 expected_base='ghcr.io/ublue-os/bluefin:stable@sha256:856082ff05edf994977d2adf040a159b5490218deb8e124cc6bd6df2a0aae530'
 grep -Fqx "FROM ${expected_base}" "${ROOT}/Containerfile"
 grep -Fqx "BASE_IMAGE=${expected_base}" "${ROOT}/.base-image.lock"
 ! grep -Eq '^FROM[[:space:]]+ghcr\.io/ublue-os/bluefin:stable([[:space:]]|$)' "${ROOT}/Containerfile"
 grep -Fq 'bootc container lint --fatal-warnings' "${ROOT}/Containerfile"
+grep -Fqx 'COPY --from=ctx /system_files/etc/hostname /etc/hostname' "${ROOT}/Containerfile"
+
+grep -Fq 'state="$(systemctl is-enabled "$1" 2>/dev/null || true)"' "${divination}"
+if grep -Fq 'systemctl is-enabled "$1" 2>/dev/null || printf' "${divination}"; then
+  printf 'divination unit_state still appends a fallback to systemctl output\n' >&2
+  exit 1
+fi
+grep -Fq "info 'bootc status requires root; run: sudo bootc status'" "${divination}"
+if grep -Eq '(^|[;&|])[[:space:]]*(sudo|pkexec)[[:space:]]' "${divination}"; then
+  printf 'divination must not invoke sudo or pkexec\n' >&2
+  exit 1
+fi
+
+grep -Fqx 'kobold' "${ROOT}/system_files/etc/hostname"
+grep -Fqx 'ExecCondition=/usr/sbin/mcelog --is-cpu-supported' \
+  "${ROOT}/system_files/etc/systemd/system/mcelog.service.d/10-kobold-supported-cpu.conf"
 
 flatpak="${ROOT}/system_files/etc/flatpak/preinstall.d/50-kobold.preinstall"
 [[ -f "${flatpak}" ]]

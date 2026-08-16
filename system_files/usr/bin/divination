@@ -14,17 +14,26 @@ info() { printf '%-7s %s\n' "$INFO" "$*"; }
 section() { printf '\n== %s ==\n' "$*"; }
 
 unit_state() {
-  systemctl is-enabled "$1" 2>/dev/null || printf 'not-found'
+  local state
+  state="$(systemctl is-enabled "$1" 2>/dev/null || true)"
+  if [[ -n "$state" ]]; then
+    printf '%s\n' "$state"
+  else
+    printf 'not-found\n'
+  fi
 }
 
 printf 'Kobold Divination — read-only system security and health\n'
 printf 'Time: %s\n' "$(date --iso-8601=seconds 2>/dev/null || date)"
 
 section 'Deployment'
-if command -v bootc >/dev/null 2>&1 && bootc status >/tmp/divination-bootc.$$ 2>/dev/null; then
+if ! command -v bootc >/dev/null 2>&1; then
+  info 'bootc command not available in this environment'
+elif bootc_status="$(bootc status 2>&1)"; then
   ok 'bootc deployment status available'
-  sed 's/^/         /' /tmp/divination-bootc.$$ | head -20
-  rm -f /tmp/divination-bootc.$$
+  sed 's/^/         /' <<<"$bootc_status" | head -20
+elif grep -Eqi 'root privilege|root user|must (be|run|execute).*root' <<<"$bootc_status"; then
+  info 'bootc status requires root; run: sudo bootc status'
 else
   warn 'bootc status unavailable in this environment'
 fi
@@ -124,11 +133,17 @@ section 'Virtualization'
 [[ -e /dev/kvm ]] && ok '/dev/kvm available' || warn '/dev/kvm unavailable in this boot/environment'
 
 qemu_conf=/etc/libvirt/qemu.conf
-if grep -q '^security_require_confined[[:space:]]*=[[:space:]]*1' "$qemu_conf" 2>/dev/null && \
-   grep -q '^security_default_confined[[:space:]]*=[[:space:]]*1' "$qemu_conf" 2>/dev/null; then
-  ok 'Quarantine libvirt requires confined system-QEMU guests'
+if [[ -r "$qemu_conf" ]]; then
+  if grep -q '^security_require_confined[[:space:]]*=[[:space:]]*1' "$qemu_conf" && \
+     grep -q '^security_default_confined[[:space:]]*=[[:space:]]*1' "$qemu_conf"; then
+    ok 'Quarantine libvirt requires confined system-QEMU guests'
+  else
+    fail 'Quarantine libvirt confinement requirement missing'
+  fi
+elif [[ -e "$qemu_conf" || ! -x "$(dirname "$qemu_conf")" ]]; then
+  info 'Quarantine libvirt confinement not verifiable without privilege'
 else
-  fail 'Quarantine libvirt confinement requirement missing'
+  fail 'Quarantine libvirt qemu.conf missing'
 fi
 
 if command -v virsh >/dev/null 2>&1 && virsh -c qemu:///system uri >/dev/null 2>&1; then

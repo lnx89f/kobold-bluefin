@@ -42,6 +42,10 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/build.sh
 
+# Build runtimes mount /etc/hostname during RUN, so copy the image default in a
+# dedicated layer. A later user-selected static hostname still overrides it.
+COPY --from=ctx /system_files/etc/hostname /etc/hostname
+
 ### LINTING
 ## Verify final image and contents are correct.
 RUN --mount=type=tmpfs,target=/run --network=none \
