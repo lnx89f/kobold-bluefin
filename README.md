@@ -1,318 +1,359 @@
-# image-template
+# Kobold
 
-This repository is meant to be a template for building your own custom [bootc](https://github.com/bootc-dev/bootc) image. This template is the recommended way to make customizations to any image published by the Universal Blue Project.
+**Kobold is a curated, image-based Linux workstation built on Bluefin Standard stable.**
 
-# Community
+The project exists to answer a practical question: how far can a Linux workstation be improved without turning its maintenance into a second operating-system project?
 
-If you have questions about this template after following the instructions, try the following spaces:
-- [Universal Blue Forums](https://universal-blue.discourse.group/)
-- [Universal Blue Discord](https://discord.gg/WEu6BdFEtp)
-- [bootc discussion forums](https://github.com/bootc-dev/bootc/discussions) - This is not an Universal Blue managed space, but is an excellent resource if you run into issues with building bootc images.
+Kobold deliberately starts from a mature, hardware-aware, bootc-native upstream and keeps its own delta small. Bluefin and Fedora continue to own the difficult platform work — kernel, hardware integration, bootc, update plumbing, power management and the wider desktop base — while Kobold concentrates on policy: a restrained GNOME desktop, optional Niri session, rootless container workflow, a deliberately split virtualization model, conservative host exposure, clear branding and a read-only system health command.
 
-# How to Use
+This is not an attempt to create a distribution from scratch. It is an exercise in **curation, reduction and validation**.
 
-To get started on your first bootc image, simply read and follow the steps in the next few headings.
-If you prefer instructions in video form, TesterTech created an excellent tutorial, embedded below.
+> **Status — v0.1 development:** the OCI image and QCOW2 runtime have passed the current validation gates. PR #1 remains a draft while the release process is completed. Custom ISO/installer work is intentionally outside the initial v0.1 scope.
 
-[![Video Tutorial](https://img.youtube.com/vi/IxBl11Zmq5w/0.jpg)](https://www.youtube.com/watch?v=IxBl11Zmq5wE)
+## What Kobold is trying to optimize
 
-## Step 0: Prerequisites
+A workstation is useful when it remains predictable under real work. Kobold therefore prioritizes:
 
-These steps assume you have the following:
-- A Github Account
-- A machine running a bootc image (e.g. Bazzite, Bluefin, Aurora, or Fedora Atomic)
-- Experience installing and using CLI programs
+- **Upstream leverage instead of downstream reinvention.** Bluefin Standard stable is the real base image.
+- **A small, auditable delta.** Every host-level customization should have a clear operational reason.
+- **Image-based reproducibility.** The system is produced as an OCI/bootc image rather than assembled manually after installation.
+- **Security without ceremonial complexity.** SELinux stays Enforcing, firewalld is kept active with a restrictive default zone, rootful Podman activation is masked, and unnecessary host services are reduced or disabled.
+- **Minimal mutable host state.** Development belongs primarily in rootless containers; personal configuration belongs in the user layer.
+- **Useful defaults without locking the user in.** GNOME is the primary desktop, Niri is available as an additional session, and `chezmoi` is the preferred bridge for user-managed dotfiles.
+- **Different trust levels for different VMs.** GNOME Boxes is the convenient path for ordinary workloads; virt-manager with `qemu:///system` and SELinux/sVirt is the deliberately stricter Quarantine path.
+- **Upstream-compatible maintenance.** Kobold does not replace Bluefin's kernel, DNS, ZRAM or power stack with local inventions.
 
-## Step 1: Preparing the Template
+## Architecture
 
-### Step 1a: Copying the Template
-
-Select `Use this Template` on this page. You can set the name and description of your repository to whatever you would like, but all other settings should be left untouched.
-
-Once you have finished copying the template, you need to enable the Github Actions workflows for your new repository.
-To enable the workflows, go to the `Actions` tab of the new repository and click the button to enable workflows.
-
-### Step 1b: Cloning the New Repository
-
-Here I will defer to the much superior GitHub documentation on the matter. You can use whichever method is easiest.
-[GitHub Documentation](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
-
-Once you have the repository on your local drive, proceed to the next step.
-
-## Step 2: Initial Setup
-
-### Step 2a: Creating a Cosign Key
-
-Container signing is important for end-user security and is enabled on all Universal Blue images. By default the image builds *will fail* if you don't.
-
-First, install the [cosign CLI tool](https://edu.chainguard.dev/open-source/sigstore/cosign/how-to-install-cosign/#installing-cosign-with-the-cosign-binary)
-With the cosign tool installed, run inside your repo folder:
-
-```bash
-COSIGN_PASSWORD="" cosign generate-key-pair
+```text
+Bluefin Standard stable
+        │
+        │  Fedora + bootc + hardware/update integration
+        ▼
+Kobold curated delta
+        ├── GNOME as the primary desktop
+        ├── Niri as an optional session
+        ├── Kobold branding and identity
+        ├── SELinux/firewalld-oriented host policy
+        ├── Podman rootless + Distrobox
+        ├── chezmoi for mutable user configuration
+        ├── GNOME Boxes for common VMs
+        ├── virt-manager + qemu:///system + sVirt for Quarantine
+        └── divination read-only health/security inspection
 ```
 
-The signing key will be used in GitHub Actions and will not work if it is password protected.
+The repository itself is built on the official [`ublue-os/image-template`](https://github.com/ublue-os/image-template) scaffold. The upstream template revision and resolved Bluefin parent used by a build are recorded so that the relationship between Kobold and its parent remains explicit.
 
-> [!WARNING]
-> Be careful to *never* accidentally commit `cosign.key` into your git repo. If this key goes out to the public, the security of your repository is compromised.
+## Curated host policy
 
-Next, you need to add the key to GitHub. This makes use of GitHub's secret signing system.
+### Desktop
 
-<details>
-    <summary>Using the Github Web Interface (preferred)</summary>
+GNOME remains the main session and retains the core components required for a complete desktop. Kobold removes or avoids a number of non-essential leaf applications and Bluefin-added immutable GNOME Shell extensions rather than replacing the desktop stack itself.
 
-Go to your repository settings, under `Secrets and Variables` -> `Actions`
-![image](https://user-images.githubusercontent.com/1264109/216735595-0ecf1b66-b9ee-439e-87d7-c8cc43c2110a.png)
-Add a new secret and name it `SIGNING_SECRET`, then paste the contents of `cosign.key` into the secret and save it. Make sure it's the .key file and not the .pub file. Once done, it should look like this:
-![image](https://user-images.githubusercontent.com/1264109/216735690-2d19271f-cee2-45ac-a039-23e6a4c16b34.png)
-</details>
-<details>
-<summary>Using the Github CLI</summary>
+Niri is installed as an additional session, but its personal configuration is intentionally **not** baked into the immutable image. Niri, shell, Waybar/Fuzzel/Mako, personal GNOME extensions and similar preferences belong in user-managed configuration, preferably through `chezmoi` + Git.
 
-If you have the `github-cli` installed, run:
+### Applications
+
+The system keeps Bluefin's Bazaar integration and adds Firefox as the only Kobold-specific Flatpak preinstall in v0.1. Additional applications are user-selected rather than treated as permanent operating-system state.
+
+Host-native tooling is intentionally selective. Kobold keeps the tools that define the workstation and avoids turning the base image into a generic development toolbox.
+
+### Containers
+
+The supported container workflow is:
+
+- Podman rootless;
+- Distrobox for development environments;
+- no Docker compatibility layer as a host requirement;
+- no Podman Compose requirement;
+- Trivy and other heavier specialist tools can be used on demand from a container/Distrobox instead of living permanently on the host.
+
+The rootful `podman.socket` is masked by policy.
+
+### Services
+
+Some useful upstream payloads remain installed for compatibility but are not allowed to become background policy by accident. Examples include Tailscale, printing and Input Remapper, which are present but inactive by default. Recurring Homebrew update/upgrade timers are masked while the upstream Homebrew setup is retained for `ujust` compatibility.
+
+Kobold also avoids maintaining its own DNS, kernel, ZRAM, power-management or USB-autosuspend stack. Those responsibilities stay with the upstream platform unless measured evidence justifies a future exception.
+
+## Virtualization: Common and Quarantine
+
+Kobold intentionally exposes two different virtualization paths because convenience and isolation are different goals.
+
+### Common VMs
+
+Use **GNOME Boxes** for normal development, distro evaluation and workloads that do not require the stricter Quarantine profile. It is the convenience-oriented path.
+
+### Quarantine VMs
+
+Use **virt-manager** connected to:
+
+```text
+qemu:///system
+```
+
+The system libvirt policy requires SELinux confinement:
+
+```text
+security_driver = "selinux"
+security_default_confined = 1
+security_require_confined = 1
+```
+
+For Quarantine guests, the intended operational profile is conservative: no shared folders, no unnecessary clipboard or drag-and-drop integration, no USB/PCI passthrough, no bridge networking by default, and no nested virtualization unless the workload actually requires it.
+
+`divination` inspects running Quarantine guests for visible sVirt labels and flags integration devices that deserve review. It is an auditing tool, not a substitute for understanding the VM's threat model.
+
+## Divination
+
+Kobold includes:
 
 ```bash
-gh secret set SIGNING_SECRET < cosign.key
+divination
 ```
-</details>
 
-### Step 2b: Choosing Your Base Image
+`divination` is deliberately **read-only**. It does not call `sudo`, does not invoke `pkexec`, does not silently repair configuration and does not weaken permissions in order to make its own checks easier.
 
-To choose a base image, simply modify the line in the container file starting with `FROM`. This will be the image your image derives from, and is your starting point for modifications.
-For a base image, you can choose any of the Universal Blue images or start from a Fedora Atomic system. Below this paragraph is a dropdown with a non-exhaustive list of potential base images.
+It reports useful state including:
 
-<details>
-    <summary>Base Images</summary>
+- bootc deployment visibility;
+- Kobold OS identity;
+- SELinux state;
+- Secure Boot visibility;
+- firewalld/default zone;
+- non-loopback listeners;
+- failed systemd units;
+- rootful Podman socket policy;
+- selected service/timer state;
+- Bluetooth visibility;
+- KVM/libvirt availability;
+- Quarantine VM/sVirt observations;
+- readable SELinux AVCs;
+- memory, PSI and thermal summaries when available.
 
-- Bazzite: `ghcr.io/ublue-os/bazzite:stable`
-- Aurora: `ghcr.io/ublue-os/aurora:stable`
-- Bluefin: `ghcr.io/ublue-os/bluefin:stable`
-- Universal Blue Base: `ghcr.io/ublue-os/base-main:latest`
-- Fedora: `quay.io/fedora/fedora-bootc:44`
+A warning is not automatically a vulnerability. The command distinguishes hard policy failures from conditions that require context — especially inside virtual machines where hardware, Secure Boot, Bluetooth and thermal sensors may not be visible.
 
-You can find more Universal Blue images on the [packages page](https://github.com/orgs/ublue-os/packages).
-</details>
+## Current validation state
 
-If you don't know which image to pick, choosing the one your system is currently on is the best bet for a smooth transition. To find out what image your system currently uses, run the following command:
+The current v0.1 candidate has been exercised through the official image-template migration and a fresh QCOW2 runtime test.
+
+Validated gates include:
+
+- static checks: **PASS**;
+- Kobold image invariants: **PASS**;
+- `bootc container lint --fatal-warnings`: **PASS**;
+- OCI build: **PASS**;
+- QCOW2 boot: **PASS**;
+- GDM/GNOME: **PASS**;
+- Niri session: **PASS**;
+- effective hostname `kobold`: **PASS**;
+- SELinux Enforcing: **PASS**;
+- zero failed systemd units in the tested VM: **PASS**;
+- `divination`: **0 critical findings**;
+- Podman rootless: **PASS**;
+- Distrobox: **PASS**;
+- `chezmoi`: **PASS**;
+- Flatpak policy (Bazaar + Firefox): **PASS**;
+- rootful `podman.socket` masked: **PASS**;
+- Tailscale/Input Remapper/CUPS inactive: **PASS**;
+- `/dev/kvm` and `qemu:///system`: **PASS**;
+- Quarantine SELinux confinement configuration: **PASS**.
+
+Secure Boot, fingerprint, physical Wi-Fi/Bluetooth, battery behavior, suspension, T495 thermals and the physical AMD GPU path are hardware-validation concerns and are intentionally not inferred from a VM test.
+
+---
+
+# Using Kobold
+
+## 1. Understand the release state
+
+Kobold v0.1 is still being promoted through its release gates. The installation command below is the intended consumption path **after the validated image is published from `main` to GHCR**.
+
+Do not treat a development branch or an unvalidated local build as a release image.
+
+## 2. Start from a bootc-capable system
+
+Before switching images, inspect the system you are currently running:
+
 ```bash
 sudo bootc status
 ```
-This will show you all the info you need to know about your current image. The image you are currently on is displayed after `Booted image:`. Paste that information after the `FROM` statement in the Containerfile to set it as your base image.
 
-### Step 2c: Changing Names
+Keep a known recovery path and your important data backed up. An image-based operating system makes rollback and reproducibility easier, but it does not replace backups.
 
-Change the `IMAGE_NAME` and `REPO_ORGANIZATION` variable inside the `image-template.env`
+## 3. Switch to the published Kobold image
 
-To commit and push all the files changed and added in step 2 into your Github repository:
-```bash
-git add Containerfile image-template.env cosign.pub
-git commit -m "Initial Setup"
-git push
-```
-Once pushed, go look at the Actions tab on your Github repository's page.  The green checkmark should be showing on the top commit, which means your new image is ready!
-
-## Step 3: Switch to Your Image
-
-From your bootc system, run the following command substituting in your Github username and image name where noted.
-```bash
-sudo bootc switch ghcr.io/<username>/<image_name>
-```
-This should queue your image for the next reboot, which you can do immediately after the command finishes. You have officially set up your custom image! See the following section for an explanation of the important parts of the template for customization.
-
-# Repository Contents
-
-## Containerfile
-
-The [Containerfile](./Containerfile) defines the operations used to customize the selected image.This file is the entrypoint for your image build, and works exactly like a regular podman Containerfile. For reference, please see the [Podman Documentation](https://docs.podman.io/en/latest/Introduction.html).
-
-## build.sh
-
-The [build.sh](./build_files/build.sh) file is called from your Containerfile. It is the best place to install new packages or make any other customization to your system. There are customization examples contained within it for your perusal.
-
-## build.yml
-
-The [build.yml](./.github/workflows/build.yml) Github Actions workflow creates your custom OCI image and publishes it to the Github Container Registry (GHCR). By default, the image name will match the Github repository name.
-
-# Building Disk Images
-
-This template provides an out of the box workflow for creating disk images (ISO, qcow, raw) for your custom OCI image which can be used to directly install onto your machines.
-
-This template provides a way to upload the disk images that is generated from the workflow to a S3 bucket. The disk images will also be available as an artifact from the job, if you wish to use an alternate provider. To upload to S3 we use [rclone](https://rclone.org/) which is able to use [many S3 providers](https://rclone.org/s3/).
-
-## Setting Up ISO Builds
-
-The [build-disk.yml](./.github/workflows/build-disk.yml) Github Actions workflow creates a disk image from your OCI image by utilizing the [bootc-image-builder](https://osbuild.org/docs/bootc/). In order to use this workflow you must complete the following steps:
-
-1. Modify `disk_config/iso.toml` to point to your custom container image before generating an ISO image.
-2. If you changed your image name from the default in `build.yml` then in the `build-disk.yml` file edit the `IMAGE_REGISTRY`, `IMAGE_NAME` and `DEFAULT_TAG` environment variables with the correct values. If you did not make changes, skip this step.
-3. Finally, if you want to upload your disk images to S3 then you will need to add your S3 configuration to the repository's Action secrets. This can be found by going to your repository settings, under `Secrets and Variables` -> `Actions`. You will need to add the following
-  - `S3_PROVIDER` - Must match one of the values from the [supported list](https://rclone.org/s3/)
-  - `S3_BUCKET_NAME` - Your unique bucket name
-  - `S3_ACCESS_KEY_ID` - It is recommended that you make a separate key just for this workflow
-  - `S3_SECRET_ACCESS_KEY` - See above.
-  - `S3_REGION` - The region your bucket lives in. If you do not know then set this value to `auto`.
-  - `S3_ENDPOINT` - This value will be specific to the bucket as well.
-
-Once the workflow is done, you'll find the disk images either in your S3 bucket or as part of the summary under `Artifacts` after the workflow is completed.
-
-# Artifacthub
-
-This template comes with the necessary tooling to index your image on [artifacthub.io](https://artifacthub.io). Use the `artifacthub-repo.yml` file at the root to verify yourself as the publisher. This is important to you for a few reasons:
-
-- The value of artifacthub is it's one place for people to index their custom images, and since we depend on each other to learn, it helps grow the community. 
-- You get to see your pet project listed with the other cool projects in Cloud Native.
-- Since the site puts your README front and center, it's a good way to learn how to write a good README, learn some marketing, finding your audience, etc. 
-
-[Discussion Thread](https://universal-blue.discourse.group/t/listing-your-custom-image-on-artifacthub/6446)
-
-# Justfile Documentation
-
-The `Justfile` contains various commands and configurations for building and managing container images and virtual machine images using Podman and other utilities. It is also used inside Github Actions.
-
-## Required Utilities
-
-Container build:
-- [just](https://just.systems/man/en/introduction.html)
-- [podman](https://docs.podman.io/en/latest)
-- [jq](https://jqlang.org)
-
-These are usually preinstalled on Universal Blue's Bootc Images.
-
-Linting:
-- shfmt
-- shellcheck
-
-## Environment Variables
-
-These are all sourced from the `image-template.env` file.
-
-- `image_name`: The name of the image (default: "image-template").
-- `default_tag`: The default tag for the image (default: "latest").
-- `bib_image`: The Bootc Image Builder (BIB) image (default: "quay.io/centos-bootc/bootc-image-builder:latest").
-
-## Building The Image
-
-All these recipes will work (with default values) without supplying any arguments to them, e.g. `just build`
-
-### `just build`
-
-Builds a container image using Podman.
+Once a validated release is published:
 
 ```bash
-just build $target_image $tag
+sudo bootc switch ghcr.io/lnx89f/kobold-bluefin:latest
 ```
 
-Arguments:
-- `$target_image`: The tag you want to apply to the image (default: `$image_name`).
-- `$tag`: The tag for the image (default: `$default_tag`).
+Reboot after the operation completes.
 
-### Rechunking
-We can flatten the layers of container images to make sure there isn't a single huge layer when your image gets published.
-This does not make your image faster to download, just provides better resumability.
+## 4. Verify the deployment
 
-#### `just ostree-rechunk`
-Rechunks the existing Image with [rpm-ostree](https://coreos.github.io/rpm-ostree/build-chunked-oci/)
+After booting Kobold:
 
 ```bash
-just ostree-rechunk $target_image $tag
+hostname
+getenforce
+divination
+sudo bootc status
 ```
 
-#### `just rechunk`
-Rechunks the existing Image with [chunkah](https://github.com/coreos/chunkah), this is probably gonna be the default here at some point, try it out, it's cool.
+The expected baseline is:
+
+```text
+hostname: kobold
+SELinux: Enforcing
+divination: no critical finding detected
+bootc: Kobold image is the booted deployment
+```
+
+Warnings from `divination` should be reviewed in context rather than mechanically suppressed.
+
+## 5. Choose your desktop session
+
+Use **GNOME** as the default, integrated workstation session.
+
+Niri is also installed. Select it from the GDM session chooser when you want the tiling workflow. Kobold does not impose a personal Niri configuration from `/usr`; keep that configuration in your user environment and version it with `chezmoi` if desired.
+
+## 6. Install desktop applications
+
+Use **Bazaar/Flatpak** for mutable desktop applications. Firefox is preinstalled by Kobold.
+
+Inspect the current application set with:
 
 ```bash
-just rechunk $target_image $tag
+flatpak list --app
 ```
 
-### Switching to the locally built image for testing
+Keeping optional applications outside the immutable host makes experimentation cheap and the base image easier to reason about.
 
-The image has to be in the containers-storage owned by root, to be able to rebase to it, see the `_rootful_load_image` recipe.
+## 7. Use rootless containers for development
 
-`sudo just build` and `sudo just ostree-rechunk` builds directly as root and allows you to skip the transfer to the root containers-storage.
-
-You can rebase to all the images that are in your containers-storage:
-
-```
-sudo podman image list --filter=label=containers.bootc=1
-```
-
-See [man bootc switch](https://bootc.dev/bootc/man/bootc-switch.8.html) for more info.
-
-```
-sudo bootc switch --transport containers-storage localhost/myimage:latest
-```
-
-and reboot your system!
-
-## Building and Running Virtual Machines and ISOs
-
-The below commands all build QCOW2 images. To produce or use a different type of image, substitute in the command with that type in the place of `qcow2`. The available types are `qcow2`, `iso`, and `raw`.
-
-### `just build-qcow2`
-
-Builds a QCOW2 virtual machine image.
+Verify rootless Podman:
 
 ```bash
-just build-qcow2 $target_image $tag
+podman info --format '{{.Host.Security.Rootless}}'
 ```
 
-### `just rebuild-qcow2`
-
-Rebuilds a QCOW2 virtual machine image.
+A simple runtime test:
 
 ```bash
-just rebuild-vm $target_image $tag
+podman run --rm quay.io/podman/hello
 ```
 
-### `just run-vm-qcow2`
-
-Runs a virtual machine from a QCOW2 image.
+Use Distrobox when you need a mutable development environment without turning the host into one:
 
 ```bash
-just run-vm-qcow2 $target_image $tag
+distrobox create --name dev
+distrobox enter dev
 ```
 
-### `just spawn-vm`
+Language toolchains, experimental CLIs, scanners and project-specific dependencies should generally live there unless they are genuine workstation-level requirements.
 
-Runs a virtual machine using systemd-vmspawn.
+## 8. Manage personal configuration with chezmoi
+
+`chezmoi` is installed as the preferred user-state layer. Use it for shell configuration, Niri preferences, terminal settings and other dotfiles that should survive image changes without becoming part of the operating-system build.
+
+This separation is intentional:
+
+```text
+bootc image   -> system policy
+Flatpak       -> desktop applications
+Distrobox     -> development environments
+chezmoi/Git   -> personal configuration
+```
+
+Each layer has a distinct responsibility and can evolve without unnecessarily destabilizing the others.
+
+## 9. Choose the correct virtualization path
+
+For ordinary VMs, open **GNOME Boxes**.
+
+For an untrusted or deliberately isolated workload, open **virt-manager**, use the `qemu:///system` connection and create a Quarantine VM without convenience integrations that cross the guest/host boundary unless they are explicitly needed.
+
+After defining or starting Quarantine workloads, run:
 
 ```bash
-just spawn-vm rebuild="0" type="qcow2" ram="6G"
+divination
 ```
 
-## File Management
+Review any VM integration warnings instead of suppressing them globally.
 
-### `just check`
+## 10. Let upstream handle platform updates
 
-Checks the syntax of all `.just` files and the `Justfile`.
+Kobold intentionally preserves Bluefin/Universal Blue's update integration rather than introducing an independent host updater. `ujust` remains available for upstream-supported operational recipes.
 
-### `just fix`
+A Kobold release cycle resolves the current Bluefin `stable` parent, records the resulting digest for that candidate, builds the image, runs its gates and only then promotes the result. The recorded digest is a provenance point for a build — not a permanent freeze of Bluefin.
 
-Fixes the syntax of all `.just` files and the `Justfile`.
+The intended project cadence is approximately every 15 days, or sooner when a relevant security fix, CVE or important upstream correction justifies a new candidate.
 
-### `just clean`
+---
 
-Cleans the repository by removing build artifacts.
+# Building and validating from source
 
-### `just lint`
+Kobold uses the official Universal Blue image-template workflow rather than a custom build framework.
 
-Runs shell check on all Bash scripts.
+Clone the repository and enter it:
 
-### `just format`
+```bash
+git clone https://github.com/lnx89f/kobold-bluefin.git
+cd kobold-bluefin
+```
 
-Runs shfmt on all Bash scripts.
+Inspect the active branch and project decisions before changing the image:
 
-## Additional resources
+```bash
+git status
+cat DECISIONS.md
+cat UPSTREAM.md
+```
 
-For additional driver support, ublue maintains a set of scripts and container images available at [ublue-akmod](https://github.com/ublue-os/akmods). These images include the necessary scripts to install multiple kernel drivers within the container (Nvidia, OpenRazer, Framework...). The documentation provides guidance on how to properly integrate these drivers into your container image.
+Useful image-template commands include:
 
-## Community Examples
+```bash
+just check
+just lint
+just build
+just build-qcow2
+```
 
-These are images derived from this template (or similar enough to this template). Reference them when building your image!
+Kobold also treats its project-specific static checks, image invariants and fatal bootc lint as release gates. A successful container build alone is not considered sufficient evidence for promotion.
 
-- [m2Giles' OS](https://github.com/m2giles/m2os)
-- [bOS](https://github.com/bsherman/bos)
-- [Homer](https://github.com/bketelsen/homer/)
-- [Amy OS](https://github.com/astrovm/amyos)
-- [VeneOS](https://github.com/Venefilyn/veneos)
+When testing a QCOW2, use a **copy** of the generated artifact for disposable VMs rather than attaching the canonical output artifact directly to virt-manager. This prevents VM deletion workflows from deleting the only build artifact.
+
+---
+
+# Engineering philosophy
+
+Kobold is built around a simple rule: **a workstation should be boring where predictability matters and powerful where the user needs leverage**.
+
+Bluefin is the primary technical inspiration because it demonstrates what a modern Linux workstation can look like when Fedora, bootc, container workflows, hardware enablement and desktop integration are treated as a coherent product instead of a collection of post-install scripts. Kobold respects that work by staying downstream and keeping its changes narrow.
+
+The project's operating philosophy is also informed by lessons from **NixOS** and **Arch Linux**, without pretending to inherit their implementation models.
+
+From NixOS comes the value of declarative thinking: state should have an owner, system configuration should be reproducible, and rebuilding should be preferable to accumulating undocumented mutations.
+
+From Arch comes another useful discipline: know what is installed, know why it is installed, avoid unnecessary abstraction, and keep the operator close enough to the system to understand its behavior.
+
+Kobold applies those lessons to a different foundation. Instead of maintaining an independent package universe or a bespoke distribution, it uses a curated upstream image and asks a narrower set of questions:
+
+- Does this belong in the immutable host?
+- Is upstream already solving this better?
+- Can this live in Flatpak, Distrobox or user configuration instead?
+- Does the security control reduce meaningful risk without creating fragile maintenance?
+- Can the behavior be validated automatically?
+- Is the delta small enough that another engineer can audit it later?
+
+That is the point of the project: not maximum customization, but **controlled customization**; not novelty for its own sake, but a modern Linux workstation whose choices can be explained, reproduced and defended.
+
+Kobold is therefore less about building another Linux distribution and more about building a disciplined Linux system: curated upstream technology, explicit policy, reproducible delivery, measured hardening and enough restraint to remain maintainable.
+
+## Upstream and provenance
+
+Kobold is based on [Bluefin](https://projectbluefin.io/) and uses the [Universal Blue image-template](https://github.com/ublue-os/image-template). Fedora, bootc, Universal Blue and their respective upstream projects do the foundational work that makes this project possible.
+
+See [`DECISIONS.md`](./DECISIONS.md) for architectural decisions and [`UPSTREAM.md`](./UPSTREAM.md) for recorded upstream provenance.
