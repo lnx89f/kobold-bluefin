@@ -54,6 +54,8 @@ test -s /usr/share/backgrounds/kobold/kobold-wallpaper.png
 test -s /usr/share/kobold/branding/kobold-gdm-logo.png
 grep -Fqx 'NAME="Kobold"' /usr/lib/os-release
 grep -Fqx 'LOGO=kobold' /usr/lib/os-release
+grep -Fqx 'DEFAULT_HOSTNAME="kobold"' /usr/lib/os-release
+grep -Fqx 'kobold' /etc/hostname
 # Preserve technical base identity for compatibility.
 grep -Eq '^ID=bluefin$|^ID="bluefin"$' /usr/lib/os-release
 [[ ! -d /usr/share/backgrounds/bluefin ]]
@@ -81,6 +83,9 @@ for unit in tailscaled.service input-remapper.service cups.socket cups.service c
 done
 [[ "$(systemctl is-enabled uupd.timer 2>/dev/null || true)" != masked ]]
 [[ "$(systemctl is-enabled brew-setup.service 2>/dev/null || true)" != masked ]]
+[[ "$(systemctl is-enabled mcelog.service 2>/dev/null || true)" == enabled ]]
+grep -Fqx 'ExecCondition=/usr/sbin/mcelog --is-cpu-supported' \
+  /etc/systemd/system/mcelog.service.d/10-kobold-supported-cpu.conf
 
 # Quarantine must require MAC confinement on system libvirt.
 grep -Fq 'security_driver = "selinux"' /etc/libvirt/qemu.conf

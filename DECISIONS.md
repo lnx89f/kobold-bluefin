@@ -55,3 +55,11 @@ This file records decisions already made so future work does not reopen them wit
 - Reuse the exact logo, icon sizes, GDM logo and wallpaper from the previous `kobold-silverblue` repository.
 - Fetch them from a pinned old commit and verify SHA-256 rather than duplicating opaque, unverified downloads.
 - Human-facing identity is Kobold; technical base identity remains compatible with Bluefin/Fedora.
+
+## Update model
+
+- Kobold tracks stable upstream channels. Bluefin `stable` is resolved at the start of each release or rebuild cycle, and the resulting digest identifies the parent of that candidate or validated build.
+- `.base-image.lock` records that resolved parent; it does not permanently freeze Bluefin.
+- Fedora RPMs use the stable versions available at build time, and stable Flatpak branches are used without permanent commit pins. Applications and libraries are not arbitrarily version-pinned.
+- Rebuilds are expected approximately every 15 days, or earlier for a relevant CVE, critical update or upstream fix.
+- Promotion occurs only after the required Kobold validation gates pass.

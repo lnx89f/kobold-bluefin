@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Assets are copied into the image by Containerfile after being fetched and
-# checksum-verified on the host by scripts/fetch-assets.sh.
+# Assets are copied into the image from system_files after their golden
+# checksums are verified by tests/static.sh.
 test -s /usr/share/backgrounds/kobold/kobold-wallpaper.png
 test -s /usr/share/kobold/branding/kobold-gdm-logo.png
 test -s /usr/share/icons/hicolor/256x256/apps/kobold.png
