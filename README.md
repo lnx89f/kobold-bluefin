@@ -8,7 +8,7 @@ Kobold deliberately starts from a mature, hardware-aware, bootc-native upstream 
 
 This is not an attempt to create a distribution from scratch. It is an exercise in **curation, reduction and validation**.
 
-> **Status — v0.1 development:** the OCI image and QCOW2 runtime have passed the current validation gates. PR #1 remains a draft while the release process is completed. Custom ISO/installer work is intentionally outside the initial v0.1 scope.
+> **Status — v0.1 development:** OCI and QCOW2 runtime validation gates have passed. Physical-hardware validation and release automation remain separate follow-up stages. Custom ISO/installer work is outside the initial v0.1 scope.
 
 ## What Kobold is trying to optimize
 
@@ -167,7 +167,7 @@ Secure Boot, fingerprint, physical Wi-Fi/Bluetooth, battery behavior, suspension
 
 ## 1. Understand the release state
 
-Kobold v0.1 is still being promoted through its release gates. The installation command below is the intended consumption path **after the validated image is published from `main` to GHCR**.
+The installation command below uses the release image published from the canonical `main` branch to GHCR. Verify that the corresponding publication workflow completed successfully before switching.
 
 Do not treat a development branch or an unvalidated local build as a release image.
 

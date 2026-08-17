@@ -27,24 +27,74 @@ Kobold is a curated personal workstation image, not a new Linux distribution. Bl
 19. **Build discipline** — no floating base is accepted by the build wrapper. Run strict shell/static checks and `bootc container lint --fatal-warnings` before accepting an OCI.
 20. **First milestone** — OCI and QCOW2 only. No custom ISO, Anaconda, Titanoboa, installer wrapper or bootc-switch conversion path in v0.1.
 
-## First release Definition of Done
+## v0.1 image/QCOW2 Definition of Done
 
-A candidate passes only if:
+A candidate passes the base image gate only if:
 
-- base lock contains a digest-pinned Bluefin Standard reference;
-- OCI builds without dependency-protection violations;
-- `bootc container lint --fatal-warnings` passes;
-- SELinux is Enforcing when booted;
-- GDM, GNOME and Niri sessions start;
-- networking/DNS remain functional without Kobold DNS overrides;
-- Bluetooth starts off and remains togglable;
-- Podman works rootless and rootful socket is not exposed;
+- the base lock contains a digest-pinned Bluefin Standard parent;
+- the OCI build succeeds;
+- static checks succeed;
+- Kobold image invariants succeed;
+- `bootc container lint --fatal-warnings` succeeds;
+- a fresh QCOW2 boots;
+- SELinux is Enforcing;
+- GDM works;
+- GNOME works;
+- the Niri session exists and starts;
+- the effective hostname is `kobold`;
+- there are zero unexplained failed systemd units;
+- Podman works rootless;
+- rootful `podman.socket` is masked;
 - Distrobox works;
-- Boxes creates/runs an ordinary VM;
-- virt-manager Quarantine connects to `qemu:///system` and system VMs report SELinux security labels;
-- no Bluefin-added GNOME extensions remain in the system extension directory;
-- Samba, Avahi and ModemManager are absent;
-- CUPS, Input Remapper, Tailscale and containerd daemon (if installed) are not enabled by default;
-- Bazaar and Firefox are available as intended on a fresh first boot;
-- `divination` completes without a critical finding;
-- idle CPU/RAM/temperature/power are measured against unmodified Bluefin on the same hardware before claiming an optimization.
+- chezmoi works;
+- the Bazaar and Firefox fresh-install policy works;
+- unwanted Bluefin extensions and applications are absent as defined by the invariants;
+- ModemManager is absent;
+- Avahi is absent;
+- CUPS is inactive;
+- Tailscale is inactive;
+- Input Remapper is inactive;
+- recurring Brew update timers are masked;
+- virt-manager is present;
+- `qemu:///system` is reachable;
+- the Quarantine SELinux confinement configuration is valid;
+- `divination` completes without critical findings.
+
+## Separate Quarantine runtime validation
+
+This is not required to accept the base image, but is required before claiming that the Quarantine workflow has been fully exercised:
+
+- create a disposable VM under `qemu:///system`;
+- confirm the running QEMU guest has an SELinux/sVirt label;
+- confirm risky integrations are absent or warned about by `divination`.
+
+## Separate physical hardware validation
+
+These checks are not required to accept QCOW2:
+
+- Bluetooth starts off and is togglable;
+- Wi-Fi;
+- fingerprint;
+- suspend/resume;
+- audio;
+- brightness;
+- physical AMD GPU path;
+- battery behavior;
+- thermals;
+- idle power.
+
+## Separate performance comparison
+
+Before claiming Kobold is measurably lighter, cooler or more efficient than Bluefin:
+
+- compare unmodified Bluefin with Kobold;
+- use the same T495;
+- use the same power mode;
+- use an equivalent session state;
+- record idle RAM;
+- record sustained idle CPU;
+- record temperature after a fixed idle period;
+- record battery discharge/power draw;
+- record active services, timers and sockets.
+
+Do not claim package removal alone improved performance.
