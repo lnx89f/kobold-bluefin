@@ -80,6 +80,10 @@ require_installed "${protected[@]}"
 # Fail loudly if an upstream change removes either before policy is revisited.
 require_installed tailscale input-remapper
 
+# Fish, Zsh and the Bluefin CLI are mandatory inherited payload. Keep them out of
+# the downstream install transaction and fail if the parent image drops them.
+require_installed fish zsh bluefin-cli
+
 # No partial inherited-package upgrade here. A new Bluefin digest updates the base.
 dnf5 clean all
 
