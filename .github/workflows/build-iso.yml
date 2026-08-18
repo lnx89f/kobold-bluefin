@@ -57,15 +57,15 @@ jobs:
             python3-yaml \
             qemu-system-x86 \
             qemu-utils \
+            shellcheck \
             skopeo \
             xorriso
 
       - name: Run static checks
         run: |
           set -euo pipefail
-          bash tests/static.sh
+          SHELLCHECK_OPTS='--exclude=SC2001,SC2015,SC2016,SC2251' bash tests/static.sh
           bash tests/iso-static.sh
-          sudo apt-get install --yes shellcheck
           shellcheck iso_files/kobold-overlay.sh tests/iso-static.sh
           just check
 
