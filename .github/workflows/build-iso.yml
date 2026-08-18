@@ -57,7 +57,6 @@ jobs:
             python3-yaml \
             qemu-system-x86 \
             qemu-utils \
-            shellcheck \
             skopeo \
             xorriso
 
@@ -66,6 +65,8 @@ jobs:
           set -euo pipefail
           bash tests/static.sh
           bash tests/iso-static.sh
+          sudo apt-get install --yes shellcheck
+          shellcheck iso_files/kobold-overlay.sh tests/iso-static.sh
           just check
 
       - name: Resolve and verify OCI candidate

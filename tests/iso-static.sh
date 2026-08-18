@@ -35,7 +35,7 @@ grep -Eq '^ID=bluefin\$|\^ID="bluefin"\$' "${ROOT}/tests/image-invariants.sh" \
   || fail 'runtime invariant for ID=bluefin is missing'
 grep -Fq 'KOBOLD_IMAGE_NAME=kobold-bluefin' "${ROOT}/Containerfile" \
   || fail 'Kobold image name metadata is missing'
-grep -Fq '."image-name"=$name' "${ROOT}/build_files/kobold/60-branding.sh" \
+grep -Fq ".\"image-name\"=\$name" "${ROOT}/build_files/kobold/60-branding.sh" \
   || fail 'Kobold image-info rewrite is missing'
 if grep -Eq 'set_os_release[[:space:]]+ID([[:space:]]|$)' "${ROOT}/build_files/kobold/60-branding.sh"; then
   fail 'human-facing branding must not change the Bluefin OS ID'
@@ -70,9 +70,9 @@ overlay_hook_line="$(grep -nF 'bash /app/kobold-overlay.sh' "${WORKFLOW}" | cut 
   || fail 'Kobold overlay must execute after the upstream hook'
 grep -Fq 'TITANOBOA_BUILDER_DISTRO=fedora' "${WORKFLOW}" \
   || fail 'ISO builder distro must be Fedora'
-grep -Fq 'squashfs NONE "${OCI_REF}" 1' "${WORKFLOW}" \
+grep -Fq "squashfs NONE \"\${OCI_REF}\" 1" "${WORKFLOW}" \
   || fail 'Titanoboa build arguments must use livesys, squashfs, and the same embedded OCI'
-grep -Fq 'mv "${TITANOBOA_DIR}/output.iso" output.iso' "${WORKFLOW}" \
+grep -Fq "mv \"\${TITANOBOA_DIR}/output.iso\" output.iso" "${WORKFLOW}" \
   || fail 'workflow must consume Titanoboa output.iso directly'
 if grep -Fq 'steps.build.outputs.iso-dest' "${WORKFLOW}"; then
   fail 'workflow contains the obsolete Bluefin iso-dest output bug'
@@ -87,7 +87,7 @@ grep -Fq 'for package in anaconda-live dracut-live livesys-scripts' "${WORKFLOW}
   || fail 'normal OCI runtime check for Live dependencies is missing'
 grep -Fq '/usr/share/ublue-os/image-info.json' "${WORKFLOW}" \
   || fail 'normal OCI runtime check for Kobold image-info is missing'
-grep -Fq 'alias_tag="latest-${GITHUB_SHA::7}"' "${WORKFLOW}" \
+grep -Fq "alias_tag=\"latest-\${GITHUB_SHA::7}\"" "${WORKFLOW}" \
   || fail 'source-SHA alias verification is missing'
 grep -Fq 'final_digest' "${WORKFLOW}" \
   || fail 'final latest digest verification is missing'
