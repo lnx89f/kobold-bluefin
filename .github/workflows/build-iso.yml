@@ -3,6 +3,9 @@ name: Build Kobold ISO
 
 "on":
   workflow_dispatch:
+  push:
+    branches:
+      - agent/initial-iso-infrastructure
 
 env:
   OCI_REPO: "ghcr.io/lnx89f/kobold-bluefin"
