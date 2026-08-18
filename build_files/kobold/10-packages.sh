@@ -59,12 +59,18 @@ dnf5 -y --setopt=install_weak_deps=False install \
 require_installed() {
   local missing=() p
   for p in "$@"; do
-    if ! rpm -q "$p" >/dev/null 2>&1; then
-      missing+=("$p")
+    if rpm -q "$p" >/dev/null 2>&1; then
+      continue
     fi
+    if [[ "$p" == bluefin-cli ]] \
+      && [[ -d /usr/share/ublue-os/bluefin-cli ]] \
+      && grep -Eq '^bluefin-cli:' /usr/share/ublue-os/just/system.just; then
+      continue
+    fi
+    missing+=("$p")
   done
   if ((${#missing[@]})); then
-    printf 'Required RPM missing after package transaction:' >&2
+    printf 'Required inherited payload missing after package transaction:' >&2
     printf ' %s' "${missing[@]}" >&2
     printf '\n' >&2
     return 1
