@@ -9,6 +9,7 @@ This file records decisions already made so future work does not reopen them wit
 - `ujust` intact, including upstream recipe names.
 - Homebrew payload/setup for `ujust` compatibility.
 - Bazaar and its upstream preinstall/integration.
+- Fish, Zsh and `bluefin-cli` as mandatory inherited payload, without downstream reinstall or automatic shell greeting/banner activation.
 - Tailscale package, disabled by default.
 - Printing stack, disabled rather than removed.
 - Input Remapper package, disabled rather than removed.
