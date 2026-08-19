@@ -57,12 +57,16 @@ fi
 mapfile -t pre_initramfs_commands < <(
   grep -Ev '^[[:space:]]*(#|$)|^#!/' "${PRE_INITRAMFS}"
 )
-[[ "${#pre_initramfs_commands[@]}" -eq 2 ]] \
-  || fail 'pre-initramfs hook must contain only strict mode and the Anaconda dracut install'
+[[ "${#pre_initramfs_commands[@]}" -eq 4 ]] \
+  || fail 'pre-initramfs hook must contain only strict mode and the Anaconda dracut setup'
 [[ "${pre_initramfs_commands[0]}" == 'set -euo pipefail' ]] \
   || fail 'pre-initramfs hook must enable strict shell mode'
 [[ "${pre_initramfs_commands[1]}" == 'dnf5 install --assumeyes anaconda-dracut' ]] \
   || fail 'pre-initramfs hook may install only anaconda-dracut'
+[[ "${pre_initramfs_commands[2]}" == 'install -d -m 0755 /etc/dracut.conf.d' ]] \
+  || fail 'pre-initramfs hook must create only the dracut configuration directory'
+[[ "${pre_initramfs_commands[3]}" == *'add_dracutmodules+=" anaconda "'*'/etc/dracut.conf.d/90-kobold-anaconda.conf' ]] \
+  || fail 'pre-initramfs hook must explicitly select only the optional Anaconda dracut module'
 if grep -Eiq 'secureboot|sb_pubkey|mokutil|akmods|cosign|profile_id|os_id|efi_dir|btrfs|containers-storage|bootc switch' "${PRE_INITRAMFS}"; then
   fail 'pre-initramfs hook must not alter installer or Secure Boot policy'
 fi
