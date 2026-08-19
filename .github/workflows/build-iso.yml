@@ -162,6 +162,7 @@ jobs:
           sudo \
             env PATH="${PATH}" \
             CI="${CI}" \
+            HOOK_pre_initramfs="${GITHUB_WORKSPACE}/iso_files/kobold-pre-initramfs.sh" \
             HOOK_post_rootfs="${COMBINED_HOOK}" \
             TITANOBOA_BUILDER_DISTRO=fedora \
             "${just_bin}" -f "${TITANOBOA_DIR}/Justfile" build \

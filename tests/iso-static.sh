@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 WORKFLOW="${ROOT}/.github/workflows/build-iso.yml"
 OVERLAY="${ROOT}/iso_files/kobold-overlay.sh"
+PRE_INITRAMFS="${ROOT}/iso_files/kobold-pre-initramfs.sh"
 FLATPAKS="${ROOT}/iso_files/flatpaks.list"
 E2E_PATCH="${ROOT}/tests/iso-e2e-harness.patch"
 BLUEFIN_ISO_PIN='d34ce2b7727422cb0d89ebdd2bda4fc0fe40523a'
@@ -14,7 +15,7 @@ fail() {
   exit 1
 }
 
-for script in "${OVERLAY}" "${ROOT}/tests/iso-static.sh"; do
+for script in "${OVERLAY}" "${PRE_INITRAMFS}" "${ROOT}/tests/iso-static.sh"; do
   bash -n "${script}"
 done
 
@@ -53,6 +54,19 @@ if grep -Eq '\b(dnf5?|rpm|curl|git|systemctl)\b' "${OVERLAY}"; then
   fail 'overlay must not install packages, fetch content, or change services'
 fi
 
+mapfile -t pre_initramfs_commands < <(
+  grep -Ev '^[[:space:]]*(#|$)|^#!/' "${PRE_INITRAMFS}"
+)
+[[ "${#pre_initramfs_commands[@]}" -eq 2 ]] \
+  || fail 'pre-initramfs hook must contain only strict mode and the Anaconda dracut install'
+[[ "${pre_initramfs_commands[0]}" == 'set -euo pipefail' ]] \
+  || fail 'pre-initramfs hook must enable strict shell mode'
+[[ "${pre_initramfs_commands[1]}" == 'dnf5 install --assumeyes anaconda-dracut' ]] \
+  || fail 'pre-initramfs hook may install only anaconda-dracut'
+if grep -Eiq 'secureboot|sb_pubkey|mokutil|akmods|cosign|profile_id|os_id|efi_dir|btrfs|containers-storage|bootc switch' "${PRE_INITRAMFS}"; then
+  fail 'pre-initramfs hook must not alter installer or Secure Boot policy'
+fi
+
 grep -Fq "BLUEFIN_ISO_PIN: \"${BLUEFIN_ISO_PIN}\"" "${WORKFLOW}" \
   || fail 'projectbluefin/iso pin is missing or changed'
 grep -Fq "TITANOBOA_PIN: \"${TITANOBOA_PIN}\"" "${WORKFLOW}" \
@@ -71,6 +85,8 @@ overlay_hook_line="$(grep -nF 'bash /app/kobold-overlay.sh' "${WORKFLOW}" | cut 
   || fail 'Kobold overlay must execute after the upstream hook'
 grep -Fq 'TITANOBOA_BUILDER_DISTRO=fedora' "${WORKFLOW}" \
   || fail 'ISO builder distro must be Fedora'
+grep -Fq "HOOK_pre_initramfs=\"\${GITHUB_WORKSPACE}/iso_files/kobold-pre-initramfs.sh\"" "${WORKFLOW}" \
+  || fail 'Anaconda dracut integration must be available before Titanoboa builds the initramfs'
 grep -Fq "squashfs NONE \"\${OCI_REF}\" 1" "${WORKFLOW}" \
   || fail 'Titanoboa build arguments must use livesys, squashfs, and the same embedded OCI'
 grep -Fq "mv \"\${TITANOBOA_DIR}/output.iso\" output.iso" "${WORKFLOW}" \
