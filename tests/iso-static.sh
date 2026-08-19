@@ -5,6 +5,7 @@ ROOT="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 WORKFLOW="${ROOT}/.github/workflows/build-iso.yml"
 OVERLAY="${ROOT}/iso_files/kobold-overlay.sh"
 FLATPAKS="${ROOT}/iso_files/flatpaks.list"
+E2E_PATCH="${ROOT}/tests/iso-e2e-harness.patch"
 BLUEFIN_ISO_PIN='d34ce2b7727422cb0d89ebdd2bda4fc0fe40523a'
 TITANOBOA_PIN='840217d97bd0bc9a52466508c54d8dda5c5ba2fd'
 
@@ -107,6 +108,15 @@ grep -Fq 'tests/iso/smoke.sh' "${WORKFLOW}" \
   || fail 'pinned upstream smoke harness is not used'
 grep -Fq 'tests/iso/e2e.sh' "${WORKFLOW}" \
   || fail 'pinned upstream E2E harness is not used'
+grep -Fq 'tests/iso-e2e-harness.patch' "${WORKFLOW}" \
+  || fail 'pinned E2E harness compatibility patch is not applied'
+grep -Fq 'systemd.unit=anaconda.target' "${E2E_PATCH}" \
+  || fail 'E2E harness must boot the unattended Anaconda target'
+grep -Fq 'Using kernel args from ISO' "${E2E_PATCH}" \
+  || fail 'E2E harness must use the ISO kernel arguments'
+if grep -Eiq 'secureboot|sb_pubkey|mokutil|akmods|cosign|profile_id|os_id|efi_dir|btrfs|containers-storage|bootc switch' "${E2E_PATCH}"; then
+  fail 'E2E compatibility patch must not alter installer or Secure Boot policy'
+fi
 
 python3 - "${ROOT}" <<'PY'
 import pathlib

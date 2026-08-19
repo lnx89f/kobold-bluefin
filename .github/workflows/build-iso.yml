@@ -191,7 +191,7 @@ jobs:
           filename="kobold-bluefin-${OCI_TAG}-${ARCHITECTURE}.iso"
           mkdir -p output
           mv output.iso "output/${filename}"
-          sha256sum "output/${filename}" >"output/${filename}.sha256"
+          sha256sum "output/${filename}" | tee "output/${filename}.sha256"
           iso_sha256="$(awk '{print $1}' "output/${filename}.sha256")"
           jq -n \
             --arg source_repo_sha "${GITHUB_SHA}" \
@@ -231,6 +231,9 @@ jobs:
           IMAGE_TAG: latest
         run: |
           set -euo pipefail
+          git -C "${BLUEFIN_ISO_DIR}" apply --unidiff-zero \
+            "${GITHUB_WORKSPACE}/tests/iso-e2e-harness.patch"
+          bash -n "${BLUEFIN_ISO_DIR}/tests/iso/e2e.sh"
           bash "${BLUEFIN_ISO_DIR}/tests/iso/e2e.sh" \
             "${{ steps.artifact.outputs.path }}" e2e-output
 
