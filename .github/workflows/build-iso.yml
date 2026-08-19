@@ -61,12 +61,23 @@ jobs:
             skopeo \
             xorriso
 
+      - name: Enable KVM acceleration for VM gates
+        run: |
+          set -euo pipefail
+          test -e /dev/kvm
+          sudo chmod 0666 /dev/kvm
+          test -r /dev/kvm
+          test -w /dev/kvm
+
       - name: Run static checks
         run: |
           set -euo pipefail
           SHELLCHECK_OPTS='--exclude=SC2001,SC2015,SC2016,SC2251' bash tests/static.sh
           bash tests/iso-static.sh
-          shellcheck iso_files/kobold-overlay.sh tests/iso-static.sh
+          shellcheck \
+            iso_files/kobold-overlay.sh \
+            iso_files/kobold-pre-initramfs.sh \
+            tests/iso-static.sh
           just check
 
       - name: Resolve and verify OCI candidate
@@ -264,6 +275,7 @@ jobs:
           path: |
             smoke-output/
             e2e-output/
+            !e2e-output/installed.qcow2
             output/candidate-status.json
 
       - name: Upload validated ISO

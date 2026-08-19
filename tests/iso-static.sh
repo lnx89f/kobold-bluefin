@@ -89,6 +89,8 @@ overlay_hook_line="$(grep -nF 'bash /app/kobold-overlay.sh' "${WORKFLOW}" | cut 
   || fail 'Kobold overlay must execute after the upstream hook'
 grep -Fq 'TITANOBOA_BUILDER_DISTRO=fedora' "${WORKFLOW}" \
   || fail 'ISO builder distro must be Fedora'
+grep -Fq 'sudo chmod 0666 /dev/kvm' "${WORKFLOW}" \
+  || fail 'QEMU gates must use the runner KVM device instead of timing out under TCG'
 grep -Fq "HOOK_pre_initramfs=\"\${GITHUB_WORKSPACE}/iso_files/kobold-pre-initramfs.sh\"" "${WORKFLOW}" \
   || fail 'Anaconda dracut integration must be available before Titanoboa builds the initramfs'
 grep -Fq "squashfs NONE \"\${OCI_REF}\" 1" "${WORKFLOW}" \
@@ -130,6 +132,8 @@ grep -Fq 'tests/iso/e2e.sh' "${WORKFLOW}" \
   || fail 'pinned upstream E2E harness is not used'
 grep -Fq 'tests/iso-e2e-harness.patch' "${WORKFLOW}" \
   || fail 'pinned E2E harness compatibility patch is not applied'
+grep -Fq '!e2e-output/installed.qcow2' "${WORKFLOW}" \
+  || fail 'validation evidence must not upload the large transient install disk'
 grep -Fq 'systemd.unit=anaconda.target' "${E2E_PATCH}" \
   || fail 'E2E harness must boot the unattended Anaconda target'
 grep -Fq 'Using kernel args from ISO' "${E2E_PATCH}" \
