@@ -1,0 +1,37 @@
+--- a/tests/iso/e2e.sh
++++ b/tests/iso/e2e.sh
+@@ -82,0 +83,25 @@
++# Detect the ISO label and boot with the ISO's own GRUB arguments. The pinned
++# harness predates variants whose normal boot path intentionally omits
++# rd.live.ram, and forcing it can exceed the VM's memory before Anaconda runs.
++iso_label="$(xorriso -indev "$iso_path" -pvd_info 2>/dev/null \
++    | sed -n "s/^Volume Id *: *'\{0,1\}\([^']*\)'\{0,1\}[[:space:]]*$/\1/p" | head -1)"
++if [[ -z "$iso_label" ]]; then
++    iso_label="titanoboa_boot"
++fi
++
++iso_kargs=""
++for cfg_path in /boot/grub2/grub.cfg /EFI/BOOT/grub.cfg /boot/grub/grub.cfg; do
++    grub_cfg="$work_dir/grub.cfg"
++    rm -f "$grub_cfg"
++    if xorriso -indev "$iso_path" -osirrox on -extract "$cfg_path" "$grub_cfg" 2>/dev/null; then
++        iso_kargs="$(awk '/^[[:space:]]*linux(efi)?[[:space:]]/{for(i=3;i<=NF;i++) printf "%s ", $i; exit}' "$grub_cfg")"
++        [[ -n "$iso_kargs" ]] && break
++    fi
++done
++if [[ -z "$iso_kargs" ]]; then
++    iso_kargs="root=live:CDLABEL=${iso_label} rd.live.image rd.live.ram"
++fi
++iso_kargs="$(sed -E 's/(^| )(quiet|rhgb|splash)( |$)/ /g' <<<"$iso_kargs" | tr -s ' ')"
++echo "Using live root CDLABEL=${iso_label}"
++echo "Using kernel args from ISO: ${iso_kargs}"
++
+@@ -119 +144 @@
+-    -m 4096 \
++    -m "${E2E_MEMORY_MB:-6144}" \
+@@ -132 +157 @@
+-    -append "console=ttyS0 rd.live.image rd.live.ram rd.neednet=1 ip=dhcp root=live:CDLABEL=titanoboa_boot inst.ks=http://10.0.2.2:${http_port}/kickstart.ks inst.text" \
++    -append "${iso_kargs} console=ttyS0 rd.neednet=1 ip=dhcp inst.ks=http://10.0.2.2:${http_port}/kickstart.ks inst.text systemd.unit=anaconda.target" \
+@@ -167 +192 @@
+-    -m 4096 \
++    -m "${E2E_MEMORY_MB:-6144}" \
