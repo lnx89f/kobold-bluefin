@@ -64,3 +64,5 @@ This file records decisions already made so future work does not reopen them wit
 - Fedora RPMs use the stable versions available at build time, and stable Flatpak branches are used without permanent commit pins. Applications and libraries are not arbitrarily version-pinned.
 - Rebuilds are expected approximately every 15 days, or earlier for a relevant CVE, critical update or upstream fix.
 - Promotion occurs only after the required Kobold validation gates pass.
+- The v0.1.0-rc.1 ISO is the baseline for physical validation. Subsequent functional changes proceed through OCI/bootc and do not require rebuilding the ISO each time.
+- A new ISO is required only when a new installation baseline for RC2 or Final is deliberately chosen.
