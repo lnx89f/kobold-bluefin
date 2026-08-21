@@ -8,7 +8,7 @@ Kobold deliberately starts from a mature, hardware-aware, bootc-native upstream 
 
 This is not an attempt to create a distribution from scratch. It is an exercise in **curation, reduction and validation**.
 
-> **Status — v0.1 development:** OCI and QCOW2 runtime validation gates have passed. Physical-hardware validation and release automation remain separate follow-up stages. Custom ISO/installer work is outside the initial v0.1 scope.
+> **Current release status: [v0.1.0-rc.1](docs/releases/v0.1.0-rc.1.md).** The existing ISO is validated in VM and ready for physical ThinkPad T495 validation; it is not a Final release.
 
 ## What Kobold is trying to optimize
 
